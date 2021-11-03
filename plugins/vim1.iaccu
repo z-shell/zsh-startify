@@ -1,0 +1,130 @@
+# zsh-startify plugin for VIM. Commands like "vim ~/.zshrc" are routed to
+# specified generator function. The generator creates text and appends the text
+# to $SECTIONNAME of choice in ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[$SECTIONNAME]
+# (global hash). Initial and final generators manage header text.
+
+# Plugin functions are run from "zsh-startify" function, which has emulate -LR
+# zsh, setopt extendedglob. Other code is executed in unknown environment
+
+# This is implementation file (iaccu) - there's no registration here
+
+#
+# Initial generator
+#
+
+# No arguments
+@__zsh-sify-initial-generator-vim1() {
+    ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[vim1]=$'\n'"${ZSIFY_GREEN1}VIM LAST DOCUMENTS:${ZSIFY_RST}"$'\n'
+    __zsh_sify_vim1_was_content=0
+
+    #
+    # Read configuration
+    #
+
+    # Size
+
+    local size
+    zstyle -s ":plugin:zsh-startify:vim" size size || size="5"
+
+    # We run from accumulator, extendedglob is set
+    # <-> is: positive number, including 0
+    [[ "$size" != <-> ]] && size="5"
+
+    ZSHSIFY_CONFIG[vim1_size]="$size"
+
+    # Backup dir
+
+    local backup_dir
+    zstyle -s ":plugin:zsh-startify:vim" backup_dir backup_dir || backup_dir="~/.backup"
+    ZSHSIFY_CONFIG[vim1_backupdir]="$backup_dir"
+}
+
+
+#
+# Generator
+#
+
+# $1 - present working directory
+# $2 - it's "vim" or "gvim", the command that's invoked
+# $3, $4, ... - arguments passed to vim
+@__zsh-sify-generator-vim1() {
+    local ts="$1" active_path="$2" convey_id="$3" convey_name="$4" cmd="$5"
+    local -a args
+    shift 5
+    args=( "$@" )
+
+    integer max_entries="${ZSHSIFY_CONFIG[vim1_size]}" finished=0
+
+    local a
+    for a in "${args[@]}"; do
+        # Skip options
+        [[ "$a" = -[[:alnum:]]# || "$a" = --[[:alnum:]]# || "$a" = +[[:alnum:]]# ]] && continue
+
+        if [ "$__zsh_sify_vim1_path_occured[$a]" != "1" ]; then
+            __zsh_sify_vim1_was_content=1
+            __zsh_sify_vim1_path_occured[$a]="1"
+
+            # Configurable limit on number of entries in the section
+            [[ "$__zsh_sify_vim1_count" -ge "$max_entries" ]] && finished=1 && break
+            __zsh_sify_vim1_count=__zsh_sify_vim1_count+1
+
+            # Dequote $active_path and $a that come from input with quoting
+            # The quoting is needed for pasting at command line that's why
+            # we then again manually quote (the (q) flags)
+            @zsh-sify-stdlib-resolve-path "${(Q)active-path}" "${(Q)a}"
+            local dir="${(q)reply[1]}" file="${(q)reply[2]}"
+
+            # Truncate to 45 characters, right-pad to 50 characters
+            # Quoting is kept so that (z) flags will correctly split
+            # (in the selection list, things there are done via z flag)
+            #
+            # Also, quote % so that prompt expansion doesn't interfere
+            local txtfile="${file//\%/%%}"
+            txtfile='%45<...<'"$txtfile"
+            txtfile="$ZSIFY_YELLOW1${(%)txtfile}$ZSIFY_RST"
+            txtfile="${(r:50:: :)txtfile}"
+
+            ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[vim1]+=$'\t'"$txtfile"$'\n'
+        fi
+    done
+
+    # finished -> 0 (shell true)
+    return $(( 1-finished ))
+}
+
+
+#
+# Final generator
+#
+
+@__zsh-sify-final-generator-vim1() {
+    __zsh_sify_vim1_path_occured=()
+    __zsh_sify_vim1_count=0
+
+    # No content -> remove header
+    if (( __zsh_sify_vim1_was_content == 0 )); then
+        unset 'ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[vim1]'
+    fi
+}
+
+
+#
+# Helper variables
+#
+
+# Detects if a path already occured
+typeset -gA __zsh_sify_vim1_path_occured
+
+# Detects whether any content occured
+integer -g __zsh_sify_vim1_was_content
+
+# Counts number of entries generated
+integer -g __zsh_sify_vim1_count
+
+#
+# Mark that the implementation is loaded
+#
+
+typeset -g __zsh_sify_vim1_loaded=1
+
+# vim: ft=zsh

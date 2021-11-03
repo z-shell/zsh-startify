@@ -1,0 +1,75 @@
+# zsh-startify plugin for various shell utils. Commands like "vim ~/.zshrc" are
+# routed to specified generator function. Typical main generator creates text
+# with hyperlinks and appends the text to $SECTIONNAME of choice in
+# ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[$SECTIONNAME] (global hash). Here, main
+# generator creates command arrays and it's the final generator that makes use
+# of this accumulated data and constructs document.
+
+# Plugin functions are run from "zsh-startify" function, which has emulate -LR
+# zsh, setopt extendedglob. Other code is executed in unknown environment
+
+# This file just registers plugin, doesn't provide implementation - this is
+# done to speed up shell startup time - loading of implementation (*.iaccu
+# file) will be done at first accumulator run
+
+#
+# Register generators for command "cp", "mv", "rm", "stat", "chown", "chmod",
+# "mkdir", "rmdir" and more
+#
+
+@zsh-sify-register-plugin "cp"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "mv"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "rm"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "stat"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "zstat"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "chown"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "chmod"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "mkdir"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "rmdir"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "ln"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "touch"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "tar"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "xz"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "7z"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "gzip"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "gunzip"   @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "bzip2"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "bunzip2"  @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "zip"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "unzip"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "rar"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "unrar"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "ssh"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "scp"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "sftp"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "readlink" @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "zsh"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "bash"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "yash"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "fish"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "sort"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "head"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "tail"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "cat"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+# ll, a typical alias, is used in less common situations than ls (ignored for commonnes)
+@zsh-sify-register-plugin "ll"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "xxd"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "file"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "install"  @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "open"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "lsof"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "lp"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "lpr"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "iconv"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "m4"       @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "gm4"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "gcc"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "dirname"  @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "basename" @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "diff"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "patch"    @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "curl"     @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "md5"      @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+@zsh-sify-register-plugin "shasum"   @__zsh-sify-initial-generator-shellutils @__zsh-sify-generator-shellutils @__zsh-sify-final-generator-shellutils
+
+# vim: ft=zsh

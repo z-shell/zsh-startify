@@ -1,0 +1,244 @@
+#
+# Started from zle or from command line
+#
+
+emulate -LR zsh
+setopt extendedglob typesetsilent
+
+##
+## Functions
+##
+
+#
+# Runs initial generators of all loaded plugins.
+# The generators will typically add their header
+# texts into ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS
+#
+function @zsh-sify-run-initial-generators() {
+    local -A already_ran
+    local g_g_
+    for g_g_ in "${(v@u)ZSHSIFY_PLUGS_INITIAL_TEXT_GENERATORS}"; do
+        local -a plugins
+        plugins=( "${(z@)g_g_}" )
+
+        local p
+        for p in "${plugins[@]}"; do
+            if [ "${already_ran[$p]}" != "1" ]; then
+                already_ran[$p]="1"
+                "$p"
+            fi
+        done
+    done
+}
+
+#
+# Runs generator for given command ($4) and its
+# arguments ($5, $6, ...). The generator ran will
+# build ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS sections,
+# i.e. entries of the hash, which are text, with
+# hyperlinks.
+#
+# Requested and used is also $2 - $PWD at the time
+# when the command is being run, and $1 - time
+# stamp of that moment. Also, $3 - ZCONVEY_ID, $4 -
+# $ZCONVEY_NAME. Also, in appropiate scope parameter
+# ZSHSIFY_OTHER_VARIADIC_DATA is available for plugins,
+# containing variable number of elements read from
+# input.db, occuring after fixed, defined elements
+#
+function @zsh-sify-run-generator() {
+    local ts="$1" active_path="$2" convey_id="$3" convey_name="$4" cmd="$5"
+    integer exit_codes=0
+
+    if [[ -n "$cmd" && -n "${ZSHSIFY_PLUGS_TEXT_GENERATORS[$cmd]}" ]]; then
+        # Single command might be routed to multiple
+        # generators (e.g. two plugins for vim)
+        local -a plugins
+        plugins=( "${(z@)ZSHSIFY_PLUGS_TEXT_GENERATORS[$cmd]}" )
+
+        local p
+        for p in "${plugins[@]}"; do
+            [ -z "$p" ] && continue
+
+            "$p" "$@"
+            exit_codes=exit_codes+$?
+        done
+    fi
+
+    return $exit_codes
+}
+
+#
+# Runs final generators of all loaded plugins.
+# The generators will typically remove section's
+# header if there was no content, or e.g. create
+# actual ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS section
+# from data constructed in generators
+#
+function @zsh-sify-run-final-generators() {
+    local -A already_ran
+    local g_g_
+    for g_g_ in "${(v@u)ZSHSIFY_PLUGS_FINAL_TEXT_GENERATORS}"; do
+        local -a plugins
+        plugins=( "${(z@)g_g_}" )
+
+        local p
+        for p in "${plugins[@]}"; do
+            if [ "${already_ran[$p]}" != "1" ]; then
+                already_ran[$p]="1"
+                "$p"
+            fi
+        done
+    done
+}
+
+#
+# Loads implementation of given plugin - if it's
+# not already loaded. Testable, one can check
+# if something actually loaded
+#
+# So, a *function* sources file - this has its
+# implications about default scope during load
+#
+# $1 - plugin name
+#
+function @zsh-sify_load_implementation() {
+    local var_name="__accu_${1}_loaded"
+    # Already loaded?
+    [ "${(P)var_name}" = "1" ] && return 1
+
+    # Load
+    source "$ZSHSIFY_DIR/plugins/${1}.iaccu"
+    return 0
+}
+
+##
+## Main code
+##
+
+# Measure and limit generation time
+typeset -F SECONDS=0.0
+local -F start_seconds=$SECONDS
+local limit_seconds
+zstyle -s ":plugin:zsh-startify" time_limit limit_seconds || limit_seconds="100"
+[[ "$limit_seconds" != <-> ]] && limit_seconds="100"
+
+# Business logic follows
+local curcontext=":zle:$WIDGET"
+local MATCH MBEGIN MEND
+local input_db_path="$ZSHSIFY_CACHE_DIR/harvested.db"
+local -a input_arr
+local -a ZSHSIFY_OTHER_VARIADIC_DATA
+
+# Load all plugin implementations
+local impl
+for impl in "$ZSHSIFY_DIR"/plugins/*.iaccu; do
+    @zsh-sify_load_implementation "${${impl%.iaccu}:t}"
+done
+
+# Plugins use this hash to provide content for the output document
+typeset -gA ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS
+ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS=()
+
+@zsh-sify-run-initial-generators
+
+{ input_arr=( "${(f)$(<"${input_db_path}")}" ) } 2>/dev/null
+input_arr=( "${(Oa)input_arr[@]}" )
+
+# TODO: detect active path modification inside one command set
+for entry in "${input_arr[@]}"; do
+    (( (SECONDS - start_seconds) * 1000 >= limit_seconds )) && break
+
+    local -a data_pack ts active_path copy_of_input
+    data_pack=( "${(@z)entry}" )
+    ts="${data_pack[1]}"
+    convey_id="${(Q)data_pack[2]}"
+    convey_name="${(Q)data_pack[3]}"
+    active_path="${(Q)data_pack[4]}"
+    copy_of_input="${(Q)data_pack[5]}"
+
+    # Additional variadic data, currently used by project discovery
+    local -a ZSHSIFY_OTHER_VARIADIC_DATA
+    ZSHSIFY_OTHER_VARIADIC_DATA=( "${(@Q)data_pack[7,-1]}" )
+
+    local -a command_set
+    # What's enterred on command line, is to be dequoted
+    # There can be a special case, e.g. \~, which is not
+    # only dequoted, but also doesn't have ~ substituted
+    # That's why we keep the original quoting here (there's
+    # no (Q) flag) - we wouldn't be able to restore
+    # original user's intention (with (q) quoting)
+    command_set=( "${(@z)copy_of_input}" )
+
+    # Select last command in the input
+    integer selected_idx=1 last_idx=1 i size="${#command_set}"
+    local cmd=""
+    for (( i=1; i<=size; i++ )); do
+        [[ "$cmd" = "" && "${command_set[i]}" = ";" ]] && continue
+
+        # Look for start of command
+        if [ "$cmd" = "" ]; then
+            cmd="${command_set[i]}"
+            selected_idx=i
+        fi
+
+        # Look for end of command
+        if [ "$command_set[i]" = ";" ]; then
+            last_idx=i-1
+
+            # Now - when a in-middle command is run - is the moment
+            # to detect "on the fly" working directory change
+            if [ "$cmd" = "cd" ]; then
+                if (( last_idx - selected_idx == 0 )); then
+                    active_path="$HOME"
+                elif (( last_idx - selected_idx == 1 )); then
+                    if [[ "$active_path" != [+-]* ]]; then
+                        local candidate="${command_set[last_idx]}"
+                        if [ "${candidate[1]}" = "/" ]; then
+                            active_path="$candidate"
+                        elif [ "${candidate[1]}" = "~" ]; then
+                            active_path="${candidate/#\~/$HOME}"
+                        else
+                            # TODO: CDPATH
+                            active_path="$active_path/$candidate"
+                        fi
+                    fi
+                else
+                    # Unsupported yet
+                fi
+            fi
+
+            # Run generator
+            @zsh-sify-run-generator "$ts" "$active_path" "$convey_id" "$convey_name" "${(@)command_set[$selected_idx,$last_idx]}"
+
+            cmd=""
+            selected_idx=0
+            last_idx=0
+        fi
+    done
+
+    # Last command, without ";" at the end of it
+    if [[ "$selected_idx" -ne "0" ]]; then
+        @zsh-sify-run-generator "$ts" "$active_path" "$convey_id" "$convey_name" "${(@)command_set[$selected_idx,-1]}"
+    fi
+done
+
+@zsh-sify-run-final-generators
+
+local k text=""
+local -a splitted
+for k in shellutils vim1; do
+    text+="${ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[$k]}"
+    splitted=( "${(f)ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[$k]}" )
+done
+
+local -F 3 ZSHSIFY_GENERATION_TIME="$(( SECONDS - start_seconds ))"
+
+[[ -n "$text" ]] && \
+    print -lr -- "" "$text" "Generated in $ZSHSIFY_GENERATION_TIME"
+
+zle && zle redisplay
+
+return 0
+
+# vim:ft=zsh

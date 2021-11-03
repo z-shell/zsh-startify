@@ -1,0 +1,254 @@
+# zsh-startify plugin for various shell utils. Commands like "vim ~/.zshrc" are
+# routed to specified generator function. Typical main generator creates text
+# with hyperlinks and appends the text to $SECTIONNAME of choice in
+# ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[$SECTIONNAME] (global hash). Here, main
+# generator creates command arrays and it's the final generator that makes use
+# of this accumulated data and constructs document.
+
+# Plugin functions are run from "zsh-startify" function, which has emulate -LR
+# zsh, setopt extendedglob. Other code is executed in unknown environment
+
+# This is implementation file - there's no registration here
+
+#
+# Initial generator
+#
+
+# No arguments
+@__zsh-sify-initial-generator-shellutils() {
+    ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[shellutils]=$'\n'"${ZSIFY_GREEN1}GENERAL COMMAND LINE:${ZSIFY_RST}"$'\n'
+    __zsh_sify_shellutils_was_content=0
+
+    #
+    # Read configuration
+    #
+
+    ### Size - max number of entries in generated section
+
+    local size
+    zstyle -s ":plugin:zsh-startify:shellutils" size size || size="5"
+
+    # We run from accumulator, extendedglob is set
+    # <-> is: positive number, including 0
+    [[ "$size" != <-> ]] && size="5"
+
+    ZSHSIFY_CONFIG[shellutils_size]="$size"
+
+    ### Keep going - try `keep_going`-times to add command to any existing entry, after reaching max # of entries
+
+    local keep_going
+    zstyle -s ":plugin:zsh-startify:shellutils" keep_going keep_going || keep_going="100"
+
+    [[ "$keep_going" != <-> ]] && keep_going="100"
+
+    ZSHSIFY_CONFIG[shellutils_keep_going]="$keep_going"
+
+    ### Backup dir
+
+    local backup_dir
+    zstyle -s ":plugin:zsh-startify:shellutils" backup_dir backup_dir || backup_dir="~/.backup"
+    ZSHSIFY_CONFIG[shellutils_backupdir]="$backup_dir"
+
+    ### Sort order
+    local sort_order
+    zstyle -s ":plugin:zsh-startify:shellutils" sort_order sort_order || sort_order="recent_first"
+    ZSHSIFY_CONFIG[shellutils_sort_order]="$sort_order"
+}
+
+
+#
+# Generator
+#
+
+# $1 - present working directory
+# $2 - it's "vim" or "gvim", the command that's invoked
+# $3, $4, ... - arguments passed to vim
+@__zsh-sify-generator-shellutils() {
+    local ts="$1" active_path="$2" convey_id="$3" convey_name="$4" cmd="$5"
+    local -a args
+    shift 5
+    args=( "$@" )
+
+    integer max_entries="${ZSHSIFY_CONFIG[shellutils_size]}" keep_going="${ZSHSIFY_CONFIG[shellutils_keep_going]}" finished=0
+
+    # Configurable limit on number of entries in the section
+    if [[ "$__zsh_sify_shellutils_count" -ge "$max_entries" ]]; then
+        # Are we in keep going state?
+        if [[ "$__zsh_sify_shellutils_kg_count" -ge "$keep_going" ]]; then
+            # Keep going is also finished -> general finished state
+            finished=1
+            return $(( 1-finished ))
+        fi
+
+        # Here we count just tries, not actual additions
+        # of commands to existing entries. This protects
+        # against processing whole database striving for
+        # a new command for existing entry. Still allows
+        # to influence number of commands in entries.
+        __zsh_sify_shellutils_kg_count+=1
+    fi
+
+    local -a paths opts
+    local a
+    for a in "${args[@]}"; do
+        if [[ ( "$a" = -[[:alnum:]]# || "$a" = --[[:alnum:]]# || "$a" = +[[:alnum:]]# ) ||
+              ( "$cmd" = "chmod" && "$a" = [augo][+=-][[:alpha:]]# ) ]]; then
+            opts+=( "$a" )
+        else
+            paths+=( "$a" )
+        fi
+    done
+
+    # There are extreme cases where this might
+    # be the same for two different paths
+    local check="${cmd}.${(j:,:)opts}.${(j:,:)paths}"
+
+    if [ "$__zsh_sify_shellutils_cmd_opts_paths_occured[$check]" != "1" ]; then
+        __zsh_sify_shellutils_was_content=1
+        __zsh_sify_shellutils_cmd_opts_paths_occured[$check]="1"
+
+        # Concatenate all paths and options in a (z)-splittable way
+        local opts_concat="${(j: :)${(q)opts[@]}}"
+        local paths_concat="${(j: :)${(q)paths[@]}}"
+        local concat="${(q)opts_concat} ${(q)paths_concat}"
+
+        #
+        # Create command button (e.g. [cp]) and assign it to files
+        # Document is constructed in final generator
+        #
+
+        # First custom action: shutils1 + A (first letter of alphabet)
+        reply=()
+        # A little hack: the typical time stamp field (data1) is used
+        # to pass special value: "-1". @zsh-sify-list will do substring search
+        # for "-1" and when success, it will treat data4 field as full
+        # command data, "${(q)opts_concat} ${(q)paths_concat}" and display
+        # that full command in status window.
+        #
+        # ID, data1, data2, data3, data4, text, handler
+        local quoted_button="${(q)cmd}" p
+        for p in "${paths[@]}"; do
+            # Dequote $active_path and $p that come from input with quoting
+            # The quoting is needed for pasting at command line that's why
+            # we then again manually quote (the (q) flags)
+            # By "with quoting" it's meant: user needs to quote things
+            @zsh-sify-stdlib-resolve-path "${(Q)active-path}" "${(Q)p}"
+            local resolved_path="${(q)reply[1]}/${(q)reply[2]}"
+
+            if (( ${+__zsh_sify_shellutils_paths_to_cmd_buttons[$resolved_path]} == 0 )); then
+                # New entry - only when entries limit isn't reached
+                if [[ "$__zsh_sify_shellutils_count" -lt "$max_entries" ]]; then
+                    __zsh_sify_shellutils_count+=1
+                    __zsh_sify_shellutils_paths_to_cmd_buttons[$resolved_path]="${__zsh_sify_shellutils_paths_to_cmd_buttons[$resolved_path]} ${quoted_button}"
+                    __zsh_sify_shellutils_paths_as_added_order+=( "$resolved_path" )
+                fi
+            else
+                # Existing entry - if we are here then keep_going limit isn't reached
+                __zsh_sify_shellutils_paths_to_cmd_buttons[$resolved_path]="${__zsh_sify_shellutils_paths_to_cmd_buttons[$resolved_path]} ${quoted_button}"
+            fi
+        done
+    fi
+
+    # finished -> 0 (shell true)
+    return $(( 1-finished ))
+}
+
+
+#
+# Final generator
+#
+
+@__zsh-sify-final-generator-shellutils() {
+    __zsh_sify_shellutils_cmd_opts_paths_occured=()
+    __zsh_sify_shellutils_count=0
+    __zsh_sify_shellutils_kg_count=0
+
+    if (( __zsh_sify_shellutils_was_content == 0 )); then
+        # No content -> remove header
+        unset 'ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[shellutils]'
+    else
+        # Establish sort order
+        local -a sorted_resolved_paths
+        if [ "${ZSHSIFY_CONFIG[shellutils_sort_order]}" = "file_locations" ]; then
+            sorted_resolved_paths=( "${(no)__zsh_sify_shellutils_paths_as_added_order[@]}" )
+        else
+            sorted_resolved_paths=( "${__zsh_sify_shellutils_paths_as_added_order[@]}" )
+        fi
+
+        # Output entries
+        local p
+        for p in "${sorted_resolved_paths[@]}"; do
+            # Key is absolute path
+            local dir="${p:h}" file="${p:t}"
+
+            reply=()
+
+            # Truncate to 45 characters, right-pad to 50 characters
+            # Quoting is kept so that (z) flags will correctly split
+            # (in the selection list, things there are done via z flag)
+            #
+            # Also, quote % so that prompt expansion doesn't interfere
+            local txtfile="${file//\%/%%}"
+            txtfile='%45<...<'"$txtfile"
+            txtfile="$ZSIFY_YELLOW1${(%)txtfile}$ZSIFY_RST"
+            txtfile="${(r:50:: :)txtfile}"
+
+            ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[shellutils]+=$'\t'"$txtfile"
+
+            # Retrieve all (there can be many) buttons
+            # that run command, constructed in generator
+            local cmd_buttons_concat="${__zsh_sify_shellutils_paths_to_cmd_buttons[$p]}"
+            local -a cmd_buttons
+            cmd_buttons=( "${(z@)cmd_buttons_concat}" )
+
+            # Append the buttons
+            local b
+            for b in "${cmd_buttons[@]}"; do
+                [ -z "$b" ] && continue
+                ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[shellutils]+=" ${(Q)b}"
+            done
+
+            ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[shellutils]+=$'\n'
+        done
+    fi
+
+    # Free memory
+    __zsh_sify_shellutils_paths_to_cmd_buttons=()
+    __zsh_sify_shellutils_paths_as_added_order=()
+}
+
+
+#
+# Helper variables
+#
+
+# Detects if a command already occured (checks
+# for the same command, options and paths)
+typeset -gA __zsh_sify_shellutils_cmd_opts_paths_occured
+
+# Detects whether any content occured
+integer -g __zsh_sify_shellutils_was_content
+
+# Counts number of entries generated
+integer -g __zsh_sify_shellutils_count
+
+# Counts number of tries of adding new command to existing entry
+integer -g __zsh_sify_shellutils_kg_count
+
+# A map from file that occured in commands to buttons with full data
+# of that commands (quoted, concatenated, splittable with (z) flag)
+# Buttons are quoted and appended after space: to extract use (z)
+# flag and then dequote. The buttons look like [cp], [mkdir], etc.
+typeset -gA __zsh_sify_shellutils_paths_to_cmd_buttons
+
+# Array receiving entries (paths) as they are added, allows to
+# obtain most-recent sort order
+typeset -ga __zsh_sify_shellutils_paths_as_added_order
+
+#
+# Mark that the implementation is loaded
+#
+
+typeset -g __zsh_sify_shellutils_loaded=1
+
+# vim: ft=zsh

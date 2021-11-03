@@ -1,0 +1,83 @@
+#
+# Library file (*.laccu)
+#
+# Standard functions that can be used in plugins
+#
+
+typeset -g ZSIFY_GREEN1='%F{71}'
+typeset -g ZSIFY_GREEN1="${(%)ZSIFY_GREEN1}"
+typeset -g ZSIFY_GREEN2='%F{76}'
+typeset -g ZSIFY_GREEN2="${(%)ZSIFY_GREEN2}"
+
+typeset -g ZSIFY_BLUE1='%F{68}'
+typeset -g ZSIFY_BLUE1="${(%)ZSIFY_BLUE1}"
+typeset -g ZSIFY_BLUE2='%F{75}'
+typeset -g ZSIFY_BLUE2="${(%)ZSIFY_BLUE2}"
+
+typeset -g ZSIFY_YELLOW1='%F{178}'
+typeset -g ZSIFY_YELLOW1="${(%)ZSIFY_YELLOW1}"
+typeset -g ZSIFY_YELLOW2='%F{226}'
+typeset -g ZSIFY_YELLOW2="${(%)ZSIFY_YELLOW2}"
+
+typeset -g ZSIFY_RED1='%F{88}}'
+typeset -g ZSIFY_RED1="${(%)ZSIFY_RED1}"
+typeset -g ZSIFY_RED2='%F{9}}'
+typeset -g ZSIFY_RED2="${(%)ZSIFY_RED2}"
+
+typeset -g ZSIFY_RST="${(%):-%f}"
+
+# Resolves absolute path from current working directory and file path
+#
+# $1 - current working directory
+#
+# $2 - file path
+#
+# $reply[1] - dirname
+#
+# $reply[2] - basename
+#
+function @zsh-sify-stdlib-resolve-path() {
+    local dirpath="$1" filepath="$2"
+
+    local dirpath2="${dirpath/#\~/$HOME}"
+    # :a behaves weird, prepends paths, which are not CWD
+    [ "${dirpath2[1]}" = "/" ] && dirpath2="${dirpath2:a}"
+    local filepath2="${filepath/#\~/$HOME}"
+    [ "${filepath2[1]}" = "/" ] && filepath2="${filepath2:a}"
+
+    reply=()
+    if [ "${filepath2[1]}" = "/" ]; then
+        reply[1]="${filepath2:h}"
+        reply[2]="${filepath2:t}"
+    else
+        local p="$dirpath2/$filepath2"
+        [ "${p[1]}" = "/" ] && p="${p:a}"
+        reply[1]="${p:h}"
+        reply[2]="${p:t}"
+    fi
+}
+
+# Puts given text on command line – regardless if Zle is active or not
+#
+# $1 - text to put on command line
+#
+function @zsh-sify-stdlib-to-cmd-line() {
+    if zle; then
+        zle .kill-buffer
+        BUFFER="$1"
+        zle .redisplay
+        zle .beginning-of-line
+    else
+        print -zr "$1"
+    fi
+}
+
+# Returns date and time
+#
+# $REPLY - date and time string "Y_m_d_H.M.S"
+#
+function @zsh-sify-stdlib-get-date-and-time-string() {
+    REPLY=$( date +%Y_%m_%d_%H.%M.%S )
+}
+
+# vim:ft=zsh

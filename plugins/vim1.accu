@@ -1,0 +1,24 @@
+# zsh-startify plugin for VIM. Commands like "vim ~/.zshrc" are routed to
+# specified generator function. The generator creates text and appends the text
+# to $SECTIONNAME of choice in ZSHSIFY_OUTPUT_DOCUMENT_SECTIONS[$SECTIONNAME]
+# (global hash). Initial and final generators manage header text.
+
+# Plugin functions are run from "zsh-startify" function, which has emulate -LR
+# zsh, setopt extendedglob. Other code is executed in unknown environment
+
+# This file just registers plugin, doesn't provide implementation - this is
+# done to speed up shell startup time - loading of implementation (*.iaccu
+# file) will be done at first zsh-startify run
+
+#
+# Register generators for command "vim", "gvim"
+#
+
+@zsh-sify-register-plugin "vim"     @__zsh-sify-initial-generator-vim1 @__zsh-sify-generator-vim1 @__zsh-sify-final-generator-vim1
+@zsh-sify-register-plugin "gvim"    @__zsh-sify-initial-generator-vim1 @__zsh-sify-generator-vim1 @__zsh-sify-final-generator-vim1
+@zsh-sify-register-plugin "xxd"     @__zsh-sify-initial-generator-vim1 @__zsh-sify-generator-vim1 @__zsh-sify-final-generator-vim1
+@zsh-sify-register-plugin "mvim"    @__zsh-sify-initial-generator-vim1 @__zsh-sify-generator-vim1 @__zsh-sify-final-generator-vim1
+@zsh-sify-register-plugin "view"    @__zsh-sify-initial-generator-vim1 @__zsh-sify-generator-vim1 @__zsh-sify-final-generator-vim1
+@zsh-sify-register-plugin "nvim"    @__zsh-sify-initial-generator-vim1 @__zsh-sify-generator-vim1 @__zsh-sify-final-generator-vim1
+
+# vim: ft=zsh

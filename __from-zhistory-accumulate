@@ -1,0 +1,218 @@
+#
+# This command tries it best to find any commands with
+# absolute paths in $history, and feeds obtained data
+# to ~/.cache/zsh-startify/harvested.db. History doesn't
+# contain that much data as the tracker provides, so this
+# is more for a quick start with using zsh-startify, to see
+# its features.
+#
+
+emulate -LR zsh
+setopt extendedglob typesetsilent
+
+autoload colors
+colors
+
+# Each unique command will be remembered
+# to not process it twice
+local -A already_hits
+
+__mytrackinghook() {
+    # Not interested in argumentless commands
+    [ "$#" = "1" ] && return 1
+
+    # Limit of number of added entries
+    [[ "$current_done" -ge "$todo" ]] && return 0
+
+    # The command
+    local cmd="$1"
+
+    # No plugins for those commands
+    [[ "$cmd" = *=* || "$cmd" = "local" || "$cmd" = "sudo" || "$cmd" = "function" || "$cmd" = "compadd" ]] && continue
+    [[ "$cmd" = "echo" || "$cmd" = "printf" || "$cmd" = "wc" || "$cmd" = "declare" || "$cmd" = "compdef" ]] && continue
+    [[ "$cmd" = "bindkey" || "$cmd" = "zle" || "$cmd" = "integer" || "$cmd" = "time" || "$cmd" = "type" ]] && continue
+    [[ "$cmd" = "autoload" || "$cmd" = "tig" ]] && continue
+
+    # Command's arguments
+    local -a args
+    shift
+    args=( "$@" )
+
+    # Here arguments will be remembered
+    local -a save_args
+    save_args=()
+
+    local a active_path=""
+    integer that_file_existed any_existed=0 acount=0 wd_selected=0
+    for a in "${args[@]}"; do
+        # Recognize options, store them immediately for possible command save
+        [[ "$a" = -[[:alnum:]]# || "$a" = --[[:alnum:]]# || "$a" = +[[:alnum:]]# ]] && { save_args+=( "$a" ); continue; }
+
+        that_file_existed=0
+
+        # Possible "cd ..", etc. - NO SAVING of suspicious commands
+        [[ "$a" = ".." || "$a" = "." || "$a" = "/" ]] && break
+
+        # Count to know which argument will be
+        # used for working directory resolution
+        acount+=1
+
+        # I have ~/diff file, and git diff ... yields a false hit - NO PROCESSING
+        [[ "$cmd" = "git" && "$a" = "diff" ]] && save_args+=( "$a" ) && continue
+        [[ "$cmd" = "git" && "$a" = "status" ]] && save_args+=( "$a" ) && continue
+
+        # Looking for a first existing path, following aren't checked
+        if [ "$any_existed" = "0" ]; then
+            # Does this look like an absolute path?
+            if [[ "${a[1]}" = "/" ]]; then
+                if [[ -e "$a" ]]; then
+                    # Command is suitable for storing in input.db
+                    that_file_existed=1
+                fi
+            # Does this look like absolute path with ~ ?
+            elif [[ "${a[1]}" = "~" ]]; then
+                a="${a/#\~/$HOME}"
+                if [[ -e "$a" ]]; then
+                    # Command is suitable for storing in input.db
+                    that_file_existed=2
+                fi
+            # Does the path work when prepended with $HOME?
+            # Exclude some possible basic files
+            elif [[ -e "$HOME/$a" && "$a" != "1" && "$a" != "2" && "$a" != "3" ]]; then
+                a="$HOME/$a"
+                that_file_existed=3
+            fi
+        fi
+
+        if [ "$that_file_existed" = "0" ]; then
+            # Save argument without quoting, $history keeps user quoting
+            save_args+=( "$a" )
+        else
+            # $a is now absolute path, either reconstructed or given.
+            # Check if it will be used for working directory. If yes,
+            # then dir name can be skipped
+            if [ "$any_existed" = "0" ]; then
+                save_args+=( "${a:t}" )
+            else
+                save_args+=( "$a" )
+            fi
+        fi
+
+        # Store the file argument?
+        if [[ "$that_file_existed" -gt "0" && "$any_existed" = "0" ]]; then
+            any_existed=1
+
+            # First existing file argument will be used for working directory
+            # Simulated working directory is where the file is located
+            active_path="${a:h}"
+
+            # Remember which argument was used for working directory resolution
+            wd_selected=acount
+        fi
+    done
+
+    # Revert positive outcome if the result looks
+    # awkward or doesn't have sense
+    if (( any_existed )); then
+        local -a files
+        files=( "${(@)save_args:#-*}" ) # no -* elements
+        [ "${files[1]}" = "${files[2]}" ] && any_existed=0
+        [[ "${#files[1]}" = "1" || "${#files[2]}" = "1" ]] && any_existed=0
+
+        # There's little chance that cp or mv will work if it
+        # wasn't the first argument whose location was used to
+        # establish working directory
+        [[ ( "$cmd" = "cp" || "$cmd" = "mv" ) && "$wd_selected" != "1" ]] && any_existed=0
+
+        # ln with single argument - the file should retain path (doable), and CWD is required (impossible)
+        [[ "$cmd" = "ln" && "$wd_selected" = "1" && "${#files}" = "1" ]] && any_existed=0
+
+        [[ ( "$cmd" = "cp" || "$cmd" = "mv" ) && "${#files}" = "1" ]] && any_existed=0
+
+        [[ "$cmd" = "diff" && "${#files}" -gt 2 ]] && any_existed=0
+    fi
+
+    if (( any_existed )); then
+        local wd="$active_path"
+        local cmd_with_params="$cmd ${(j: :)save_args[@]}"
+
+        # Don't use any command twice
+        [ "${already_hits[$cmd_with_params]}" = "1" ] && return 1
+        already_hits[$cmd_with_params]="1"
+
+        echo "${fg_bold[yellow]}Hit:$reset_color $cmd_with_params"
+
+        # Quoting for data storage - not for simulation of user input
+        wd="${(q)wd}"
+        cmd_with_params="${(q)cmd_with_params}"
+        print -r -- "0 0 '' $wd $cmd_with_params $cmd_with_params" >> "${ZSHSIFY_CACHE_DIR}/harvested.db"
+
+        current_done+=1
+        [[ "$current_done" -ge "$todo" ]] && echo "${fg_bold[green]}Gathered $todo commands, exiting$reset_color" && return 0
+    fi
+
+    return 1
+}
+
+integer todo=100 current_done=0
+echo "${fg_bold[green]}Will search history for commands that provide enough information to guess$reset_color"
+echo "${fg_bold[green]}data that zsh-startify gathers (history in general doesn't hold needed data).$reset_color"
+echo "${fg_bold[green]}This is only a convenient QUICK START, the guessed commands may not always work.$reset_color"
+echo
+echo "Will gather maximum $todo commands for zsh-startify's database"
+echo "${fg_bold[yellow]}Should I clear current database? (y/n)$reset_color"
+read -sq confirm
+
+if [ "$confirm" = "y" ]; then
+    echo -n "${fg_bold[red]}Clearing.. "
+    rm -f "${ZSHSIFY_CACHE_DIR}/harvested.db"
+    echo "done$reset_color"
+else
+    echo "${fg_bold[green]}Database not cleared$reset_color"
+fi
+
+echo
+sleep 1
+
+local entry
+for entry in "${history[@]}"; do
+    local -a command_set
+    command_set=( "${(@z)entry}" )
+
+    # Search for commands in single entry of history
+    integer selected_idx=0 last_idx=1 i size="${#command_set}"
+    local cmd=""
+    for (( i=1; i<=size; i++ )); do
+        [[ "$cmd" = "" && "${command_set[i]}" = ";" ]] && continue
+
+        # Look for start of command
+        if [ "$cmd" = "" ]; then
+            cmd="${command_set[i]}"
+            selected_idx=i
+        fi
+
+        # Look for end of command
+        if [ "${command_set[i]}" = ";" ]; then
+            last_idx=i-1
+
+            if __mytrackinghook "${(@)command_set[$selected_idx,$last_idx]}"; then
+                return 0
+            fi
+
+            cmd=""
+            selected_idx=0
+            last_idx=0
+        fi
+    done
+
+    # Last command, without ";" at the end of it
+    if [[ "$selected_idx" -ne "0" ]]; then
+        if __mytrackinghook "${(@)command_set[$selected_idx,-1]}"; then
+            return 0
+        fi
+    fi
+done
+
+echo "${fg_bold[green]}Gathered $current_done commands (history ended)$reset_color"
+
+# vim:ft=zsh
