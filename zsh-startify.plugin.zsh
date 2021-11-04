@@ -2,7 +2,7 @@
 # regardless of functionargzero and posixargzero,
 # and with an option for a plugin manager to alter
 # the plugin directory (i.e. set ZERO parameter)
-# http://zdharma.org/Zsh-100-Commits-Club/Zsh-Plugin-Standard.html
+# http://z-shell.github.io/Zsh-100-Commits-Club/Zsh-Plugin-Standard.html
 0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"
 
 typeset -g ZSHSIFY_DIR="${0:h}"
@@ -25,7 +25,7 @@ zstyle -t ":plugin:zsh-startify:tracking" fork && __fork="yes"
 if [[ "$__fork" = "no" ]]; then
     [[ "${+modules}" = 1 && "${modules[zsh/datetime]}" != "loaded" && "${modules[zsh/datetime]}" != "autoloaded" ]] && zmodload zsh/datetime
     [ "${+modules}" = 0 ] && zmodload zsh/datetime
-    zmodload -e zsh/datetime || { unset __fork; print "zdharma/zsh-startify (plugin): No module \`zsh/datetime' available, aborting setup."; return 0; }
+    zmodload -e zsh/datetime || { unset __fork; print "z-shell/zsh-startify (plugin): No module \`zsh/datetime' available, aborting setup."; return 0; }
 fi
 unset __fork
 
