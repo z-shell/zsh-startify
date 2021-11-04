@@ -1,8 +1,8 @@
+# `ZSH-STARIFY`
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [zsh-startify](#zsh-startify)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
   - [Any plugin manager](#any-plugin-manager)
@@ -12,8 +12,6 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# zsh-startify
-
 A plugin that aims at providing what
 [vim-startify](https://github.com/mhinz/vim-startify) plugin does, but in Zsh. The
 analogy isn't fully easy to make. `vim-startify` states:
@@ -22,30 +20,30 @@ analogy isn't fully easy to make. `vim-startify` states:
 > show recently used or bookmarked files and persistent sessions.
 
 zsh-startify:
- - shows recently used files if used by a shell-utill command, with name of the
-   command(s) on othe right,
- - shows recently used vim files,
- - will show active tmux sessions,
- - will show statistics of most popular aliases in use,
- - will show recently visited projects (i.e. `git` repositories, but also directories
-   with a `Makefile`, a `CMakeLists.txt`, a `configure` script, etc. – a very advanced
-   feature, inherited from `zsh-startify`'s predecessor: `psprint/zaccumulator` plugin),
- - will show recently ran `git` commands, with analysis of e.g. recently checked-out
-   branches,
- - will cooperate with any bookmarking plugins to show their bookmarks.
+
+- shows recently used files if used by a shell-utill command, with name of the
+  command(s) on othe right,
+- shows recently used vim files,
+- will show active tmux sessions,
+- will show statistics of most popular aliases in use,
+- will show recently visited projects (i.e. `git` repositories, but also directories
+  with a `Makefile`, a `CMakeLists.txt`, a `configure` script, etc. – a very advanced
+  feature, inherited from `zsh-startify`'s predecessor: `psprint/zaccumulator` plugin),
+- will show recently ran `git` commands, with analysis of e.g. recently checked-out
+  branches,
+- will cooperate with any bookmarking plugins to show their bookmarks.
 
 # Screenshots
 
-![zsh-startify](https://raw.githubusercontent.com/zdharma/zsh-startify/img/zsh-startify.png)
+![zsh-startify](https://raw.githubusercontent.com/z-shell/zsh-startify/img/zsh-startify.png)
 
 # Installation
 
 ## Any plugin manager
 
 Issue the regular loading command of your plugin manager, pointing it to
-`zdharma/zsh-startify`. Then, add invocation of `zsh-startify` to the end of
+`z-shell/zsh-startify`. Then, add invocation of `zsh-startify` to the end of
 `~/.zshrc`:
-
 
 ```zsh
 % tail -n 5 ~/.zshrc                (git)-[master●]
@@ -56,16 +54,16 @@ Issue the regular loading command of your plugin manager, pointing it to
 zsh-startify
 ```
 
-## [Zplugin](https://github.com/zdharma/zplugin)
+## [Zplugin](https://github.com/z-shell/zplugin)
 
 ```zsh
 # Option A – normal load without Turbo-Mode
 zplugin ice atload'zsh-startify'
-zplugin load zdharma/zsh-startify
+zplugin load z-shell/zsh-startify
 
 # Option B – a load with Turbo-Mode being in use
 zplugin ice wait'0' lucid atload'zsh-startify'
-zplugin load zdharma/zsh-startify
+zplugin load z-shell/zsh-startify
 ```
 
 The first option (A) loads the plugin synchronously, at the time of execution of the
@@ -87,7 +85,4 @@ zstyle ":plugin:zsh-startify:shellutils" size 5  # The size of the recently used
 zstyle ":plugin:zsh-startify:vim" size 5         # The size of the recently opened in Vim list (default: 5)
 ```
 
-
-
-<!-- vim:tw=87
--->
+<!-- vim:tw=87-->
