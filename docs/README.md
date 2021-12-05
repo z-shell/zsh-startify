@@ -7,7 +7,7 @@
 - [Quick Start](#quick-start)
 - [Zstyles](#zstyles)
 
-# Introduction
+## Introduction
 
 A plugin that aims at providing what
 [vim-startify](https://github.com/mhinz/vim-startify) plugin does, but in Zsh. The
@@ -18,8 +18,7 @@ analogy isn't fully easy to make. `vim-startify` states:
 
 zsh-startify:
 
-- shows recently used files if used by a shell-utill command, with name of the
-  command(s) on othe right,
+- shows recently used files if used by a shell-util command, with name of the command(s) on other right,
 - shows recently used vim files,
 - will show active tmux sessions,
 - will show statistics of most popular aliases in use,
@@ -30,9 +29,9 @@ zsh-startify:
   branches,
 - will cooperate with any bookmarking plugins to show their bookmarks.
 
-# Installation
+## Installation
 
-## Any plugin manager
+### Any plugin manager
 
 Issue the regular loading command of your plugin manager, pointing it to
 `z-shell/zsh-startify`. Then, add invocation of `zsh-startify` to the end of
@@ -47,7 +46,7 @@ Issue the regular loading command of your plugin manager, pointing it to
 zsh-startify
 ```
 
-## [ZI](https://github.com/z-shell/zi)
+### [ZI](https://github.com/z-shell/zi)
 
 ```zsh
 # Option A – normal load without Turbo-Mode
@@ -63,13 +62,13 @@ The first option (A) loads the plugin synchronously, at the time of execution of
 `zi load ...` command. The second option (B) loads in an asynchronous manner, 0
 seconds after the prompt being first displayed.
 
-# Quick Start
+## Quick Start
 
 `zsh-startify` accumulates data in its own history file. To pre-fill it quickly with a
 few of entries (basing on the regular history) you can run the
 `__from-zhistory-accumulate` command.
 
-# Zstyles
+## Zstyles
 
 The zstyles used to configure the plugin (add such commands anywhere in the `zshrc`):
 
