@@ -1,7 +1,5 @@
-# Standarized way of handling finding plugin dir,
-# regardless of functionargzero and posixargzero,
-# and with an option for a plugin manager to alter
-# the plugin directory (i.e. set ZERO parameter)
+# Standarized way of handling finding plugin dir, regardless of functionargzero and posixargzero,
+# and with an option for a plugin manager to alter the plugin directory (i.e. set ZERO parameter)
 # http://z-shell.github.io/Zsh-100-Commits-Club/Zsh-Plugin-Standard.html
 0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"
 
@@ -10,8 +8,8 @@ typeset -g ZSHSIFY_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/zsh-startify"
 typeset -gA ZSHSIFY
 
 # Support loading without a plugin manager
-if [[ -z "$ZPLG_CUR_PLUGIN" && "${fpath[(r)$ZSHSIFY_DIR]}" != "$ZSHSIFY_DIR" ]]; then
-    fpath+=( "$ZSHSIFY_DIR" )
+if [[ -z "$ZI_CUR_PLUGIN" && "${fpath[(r)$ZSHSIFY_DIR]}" != "$ZSHSIFY_DIR" ]]; then
+  fpath+=( "$ZSHSIFY_DIR" )
 fi
 
 #
@@ -194,8 +192,7 @@ source "$ZSHSIFY_DIR"/plugins/stdlib.laccu
 () {
     local p
     for p in "$ZSHSIFY_DIR"/plugins/*.accu; do
-        # The sourced plugin should provide 2 functions
-        # and call zaccu_register_plugin() for them
+        # The sourced plugin should provide 2 functions and call zaccu_register_plugin() for them
         source "$p"
     done
 }

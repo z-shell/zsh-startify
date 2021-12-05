@@ -1,18 +1,13 @@
-# `ZSH-STARIFY`
+<h1> Zsh Startify </h1>
 
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-blue?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Screenshots](#screenshots)
+- [Introduction](#introduction)
 - [Installation](#installation)
   - [Any plugin manager](#any-plugin-manager)
-  - [Zplugin](#zplugin)
+  - [ZI](#zi)
 - [Quick Start](#quick-start)
-  - [Zstyles](#zstyles)
+- [Zstyles](#zstyles)
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+# Introduction
 
 A plugin that aims at providing what
 [vim-startify](https://github.com/mhinz/vim-startify) plugin does, but in Zsh. The
@@ -35,10 +30,6 @@ zsh-startify:
   branches,
 - will cooperate with any bookmarking plugins to show their bookmarks.
 
-# Screenshots
-
-![zsh-startify](https://raw.githubusercontent.com/z-shell/zsh-startify/img/zsh-startify.png)
-
 # Installation
 
 ## Any plugin manager
@@ -56,20 +47,20 @@ Issue the regular loading command of your plugin manager, pointing it to
 zsh-startify
 ```
 
-## [Zplugin](https://github.com/z-shell/zplugin)
+## [ZI](https://github.com/z-shell/zi)
 
 ```zsh
 # Option A – normal load without Turbo-Mode
-zplugin ice atload'zsh-startify'
-zplugin load z-shell/zsh-startify
+zi ice atload'zsh-startify'
+zi load z-shell/zsh-startify
 
 # Option B – a load with Turbo-Mode being in use
-zplugin ice wait'0' lucid atload'zsh-startify'
-zplugin load z-shell/zsh-startify
+zi ice wait'0' lucid atload'zsh-startify'
+zi load z-shell/zsh-startify
 ```
 
 The first option (A) loads the plugin synchronously, at the time of execution of the
-`zplugin load ...` command. The second option (B) loads in an asynchronous manner, 0
+`zi load ...` command. The second option (B) loads in an asynchronous manner, 0
 seconds after the prompt being first displayed.
 
 # Quick Start
@@ -78,7 +69,7 @@ seconds after the prompt being first displayed.
 few of entries (basing on the regular history) you can run the
 `__from-zhistory-accumulate` command.
 
-## Zstyles
+# Zstyles
 
 The zstyles used to configure the plugin (add such commands anywhere in the `zshrc`):
 
@@ -86,5 +77,3 @@ The zstyles used to configure the plugin (add such commands anywhere in the `zsh
 zstyle ":plugin:zsh-startify:shellutils" size 5  # The size of the recently used file list (default: 5)
 zstyle ":plugin:zsh-startify:vim" size 5         # The size of the recently opened in Vim list (default: 5)
 ```
-
-<!-- vim:tw=87-->
