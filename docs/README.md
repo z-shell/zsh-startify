@@ -29,7 +29,7 @@ zsh-startify:
 - will show statistics of most popular aliases in use,
 - will show recently visited projects (i.e. `git` repositories, but also directories
   with a `Makefile`, a `CMakeLists.txt`, a `configure` script, etc. – a very advanced
-  feature, inherited from `zsh-startify`'s predecessor: `psprint/zaccumulator` plugin),
+  feature, inherited from `zsh-startify`'s predecessor: `z-shell/zaccumulator` plugin),
 - will show recently ran `git` commands, with analysis of e.g. recently checked-out
   branches,
 - will cooperate with any bookmarking plugins to show their bookmarks.
